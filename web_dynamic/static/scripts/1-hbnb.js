@@ -1,4 +1,4 @@
-$(document).ready(function  () {
+$(document).ready(function () {
   const amencheck = {};
   $('.amenities .popover input').change(function () {
     if ($(this).is(':checked')) {
