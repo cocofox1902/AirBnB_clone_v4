@@ -1,98 +1,116 @@
 $(document).ready(function () {
-    const amencheck = {};
+    const amenitiesid = [];
+    const amenitiescheck = [];
+    const citiesid = [];
+    const citiescheck = [];
+    const statesid = [];
+    const statescheck = [];
     $('.amenities .popover input').change(function () {
-        if ($(this).is(':checked')) {
-            amencheck[$(this).data('id')] = $(this).data('name');
-        } else if ($(this).is(':not(:checked)')) {
-            delete amencheck[$(this).data('id')];
-        }
-        $('.amenities h4').text(Object.values(amencheck).join(', '));
-        if (values.length === 0) $('.amenities h4').html('&nbsp;');
+      if ($(this).is(':checked')) {
+        amenitiescheck.push($(this).data('name'));
+        amenitiesid.push($(this).data('id'));
+      } else {
+        amenitiescheck.splice(amenitiescheck.indexOf($(this).data('name')), 1);
+        amenitiesid.splice(amenitiesid.indexOf($(this).data('id')), 1);
+      }
+      if (amenitiescheck.length > 0) {
+        $('.amenities h4').text(amenitiescheck.join(', '));
+      } else {
+        $('.amenities h4').html('&nbsp;');
+      }
     });
-
-    $.get('http://127.0.0.1:5001/api/v1/status/', function (data) {
-        if (data.status == 'OK') {
-            $('#api_status').addClass('available');
-        } else {
-            $('#api_status').removeClass('available');
-        }
+    $('.popover li ul li input').change(function () {
+      if ($(this).is(':checked')) {
+        citiescheck.push($(this).data('name'));
+        citiesid.push($(this).data('id'));
+      } else {
+        citiescheck.splice(citiescheck.indexOf($(this).data('name')), 1);
+        citiesid.splice(citiesid.indexOf($(this).data('id')), 1);
+      }
     });
-
-    const locacheck = {};
-    $('.locations .popover input').change(function () {
-        if ($(this).is(':checked')) {
-            locacheck[$(this).data('id')] = $(this).data('name');
-        } else if ($(this).is(':not(:checked)')) {
-            delete locacheck[$(this).data('id')];
-        }
-        $('.locations h4').text(Object.values(locacheck).join(', '));
-        if (values.length === 0) $('.locations h4').html('&nbsp;');
+  
+    $('.popover h2 input').change(function () {
+      if ($(this).is(':checked')) {
+        statescheck.push($(this).data('name'));
+        statesid.push($(this).data('id'));
+      } else {
+        statescheck.splice(statescheck.indexOf($(this).data('name')), 1);
+        statesid.splice(statesid.indexOf($(this).data('id')), 1);
+      }
     });
-
-
-    call();
-
-    function call() {
-        $.ajax({
-            type: 'POST',
-            url: 'http://127.0.0.1:5001/api/v1/places_search/',
-            data: JSON.stringify({
-                amenities: Object.keys(amencheck),
-                location: Object.keys(locacheck),
-            }),
-            dataType: 'json',
-            contentType: 'application/json',
-            success: function (places) {
-                $.ajax({
-                    type: 'GET',
-                    url: 'http://127.0.0.1:5001/api/v1/users/',
-                    data: '{}',
-                    dataType: 'json',
-                    contentType: 'application/json',
-                    success: function (users) {
-                        amenities_post(places, users);
-                    }
-                });
-            }
+  
+    $('.popover input').change(function () {
+      const allLocations = citiescheck.concat(statescheck);
+      if (allLocations.length > 0) {
+        $('.locations h4').text(allLocations.join(', '));
+      } else {
+        $('.locations h4').html('&nbsp;');
+      }
+    });
+  
+    $.get('http://127.0.0.1:5001/api/v1/status', function(data) {
+      if (data.status === 'OK') {
+        $('#api_status').addClass('available');
+      } else {
+        $('#api_status').removeClass('available');
+      }
+    });
+  
+    $.ajax({
+      type: 'POST',
+      url: 'http://127.0.0.1:5001/api/v1/places_search',
+      data: '{}',
+      dataType: 'json',
+      contentType: 'application/json',
+      success: function(data) {
+        console.log(data);
+        data.map( function(place) {
+          const html = `<article>
+          <div class='title_box'>
+            <h2>${place.name}</h2>
+              <div class='price_by_night'>$${place.price_by_night}</div>
+          </div>
+          <div class='information'>
+            <div class='max_guest'>${place.max_guest} Guest</div>
+            <div class='number_rooms'>${place.number_rooms} Bedroom</div>
+            <div class='number_bathrooms'>${place.number_bathrooms} Bathroom</div>
+          </div>
+          <div class='description'>${place.description}</div>
+        </article>`;
+          $('.places').append(html);
         });
-    }
-
-    function amenities_post(places, users) {
-        let usergave = '';
-        places.forEach(place => {
-            usergave = '';
-            users.forEach(user => {
-                if (user.id === place.user_id) {
-                    usergave = user.first_name + ' ' + user.last_name;
-                }
-            });
-            const guest = (place.max_guest !== 1) ? 's' : '';
-            const rooms = (place.number_rooms !== 1) ? 's' : '';
-            const bathrooms = (place.number_bathrooms !== 1) ? 's' : '';
+      },
+    });
+  
+    $('button').click(() => {
+      $('.places').empty();
+      $.ajax({
+        type: 'POST',
+        url: 'http://127.0.0.1:5001/api/v1/places_search',
+        data: JSON.stringify({
+          amenities: amenitiesid,
+          states: statesid,
+          cities: citiesid,
+        }),
+        dataType: 'json',
+        contentType: 'application/json',
+        success: function(data) {
+          data.map( function(place) {
             const html = `<article>
-      <div class="title_box">
-        <h2>${place.name}</h2>
-        <div class="price_by_night">$${place.price_by_night}</div>
-      </div>
-      <div class="information">
-        <div class="max_guest">${place.max_guest} Guest${guest}</div>
-        <div class="number_rooms">${place.number_rooms} Bedroom${rooms}</div>
-        <div class="number_bathrooms">${place.number_bathrooms} Bathroom${bathrooms}</div>
-      </div>
-      <div class="user">
-        <b>Owner:</b> ${usergave} 
-      </div>
-      <div class="description">
-        ${place.description}
-      </div>
-      </article>`;
+          <div class='title_box'>
+            <h2>${place.name}</h2>
+              <div class='price_by_night'>$${place.price_by_night}</div>
+          </div>
+          <div class='information'>
+            <div class='max_guest'>${place.max_guest} Guest</div>
+            <div class='number_rooms'>${place.number_rooms} Bedroom</div>
+            <div class='number_bathrooms'>${place.number_bathrooms} Bathroom</div>
+          </div>
+          <div class='description'>${place.description}</div>
+        </article>`;
             $('.places').append(html);
-        });
-    }
-
-    $('button').click(function (interraction) {
-        interraction.preventDefault();
-        $('article').remove();
-        call();
+          });
+        },
+      });
     });
-});
+  });
